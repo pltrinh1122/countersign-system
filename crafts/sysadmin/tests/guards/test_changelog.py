@@ -18,6 +18,12 @@ class FakeCorpus:
         p = Path(p)
         return str(p.relative_to(self.root)) if p.is_relative_to(self.root) else str(p)
 
+def bare_root(case) -> Path:
+    """An empty scratch root, removed after `case`: no preferences, so the host path is the default
+    unless the environment says otherwise (#179: never the live repo's)."""
+    root = Path(tempfile.mkdtemp()); case.addCleanup(shutil.rmtree, root, ignore_errors=True)
+    return root
+
 HEAD = "# Host change log (Rule-8)\n\n| date | d-work | class | action | undo | outcome | actor |\n|------|--------|-------|--------|------|---------|-------|\n"
 ROW = "| 2026-09-13 | #7 | reversible | mkdir /x | rmdir /x | applied | agent |\n"
 HEAD_NO_ACTOR = "# Host change log (Rule-8)\n\n| date | d-work | class | action | undo | outcome |\n|------|--------|-------|--------|------|---------|\n"
@@ -87,8 +93,9 @@ class ReferencesContribTests(unittest.TestCase):
     def test_action_ops_extracts_the_path(self):
         header = ["date", "d-work", "class", "action", "undo", "outcome"]
         row = ["2026-09-13", "#7", "reversible", "Operator-run: `bash workstation-corpus/ops/7-h1-x.sh`", "rmdir", "ok"]
-        c = FakeCorpus(Path("."), changelog=(header, [row]))
-        self.assertEqual(cl.changelog_action_ops(c), [("workstation-corpus/CHANGELOG.md row 1 action", "workstation-corpus/ops/7-h1-x.sh")])
+        c = FakeCorpus(bare_root(self), changelog=(header, [row]))
+        with _HostEnv():   # the default host path, pinned: never the live repo's preferences (#179)
+            self.assertEqual(cl.changelog_action_ops(c), [("workstation-corpus/CHANGELOG.md row 1 action", "workstation-corpus/ops/7-h1-x.sh")])
     def test_action_ops_no_action_column_yields_nothing(self):
         c = FakeCorpus(Path("."), changelog=(["date"], [["x"]]))
         self.assertEqual(cl.changelog_action_ops(c), [])
@@ -102,8 +109,9 @@ class ReferencesContribTests(unittest.TestCase):
     def test_event_outcome_extracts_the_id(self):
         header = ["date", "d-work", "class", "action", "undo", "outcome"]
         row = ["2026-09-14", "#7", "reversible", "x", "stop", "ok; event: x-20260914T120000Z-start"]
-        c = FakeCorpus(Path("."), changelog=(header, [row]))
-        self.assertEqual(cl.changelog_event_outcome(c), [("workstation-corpus/CHANGELOG.md row 1 outcome", "x-20260914T120000Z-start")])
+        c = FakeCorpus(bare_root(self), changelog=(header, [row]))
+        with _HostEnv():   # as above (#179)
+            self.assertEqual(cl.changelog_event_outcome(c), [("workstation-corpus/CHANGELOG.md row 1 outcome", "x-20260914T120000Z-start")])
     def test_event_outcome_no_outcome_column_yields_nothing(self):
         c = FakeCorpus(Path("."), changelog=(["date"], [["x"]]))
         self.assertEqual(cl.changelog_event_outcome(c), [])
@@ -111,6 +119,30 @@ class ReferencesContribTests(unittest.TestCase):
         c = FakeCorpus(Path("."), events={"x": [{"id": "x-20260914T120000Z-start"}]})
         self.assertTrue(cl._event_id_exists(c, "x-20260914T120000Z-start"))
         self.assertFalse(cl._event_id_exists(c, "x-20260914T120001Z-start"))
+
+class _HostEnv:
+    """#175: DYAD_HOST / DYAD_HOST_ZONE set for one block, restored after."""
+    def __init__(self, **kw): self.kw = kw
+    def __enter__(self):
+        import os
+        self.prev = {k: os.environ.pop(k, None) for k in ("DYAD_HOST", "DYAD_HOST_ZONE")}
+        os.environ.update(self.kw)
+    def __exit__(self, *a):
+        import os
+        for k, v in self.prev.items():
+            os.environ.pop(k, None)
+            if v is not None:
+                os.environ[k] = v
+
+class HostPathTests(unittest.TestCase):
+    """#175: the change log lives under the host path."""
+    def test_changelog_path_follows_the_host_path(self):
+        root = Path(tempfile.mkdtemp())
+        with _HostEnv():
+            self.assertEqual(cl.changelog_path(root), root / "workstation-corpus" / "CHANGELOG.md")
+        with _HostEnv(DYAD_HOST="infrastructure", DYAD_HOST_ZONE="infra"):
+            self.assertEqual(cl.changelog_path(root), root / "infrastructure" / "CHANGELOG.md")
+
 class InvariantTests(unittest.TestCase):
     """crafts/syseng/rules/invariants.md: the guard's INVARIANTS (plus the contract's four) hold; each name is unique."""
     def test_invariants_hold(self):
