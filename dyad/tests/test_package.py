@@ -758,9 +758,11 @@ class SuiteEnvTests(unittest.TestCase):
     def test_git_vars_dropped_and_nesting_marked(self):
         pkg = load_package()
         with unittest.mock.patch.dict(os.environ, {"GIT_DIR": "/elsewhere/.git", "GIT_WORK_TREE": "/elsewhere",
-                                                   "GIT_INDEX_FILE": "/elsewhere/.git/index"}):
+                                                   "GIT_INDEX_FILE": "/elsewhere/.git/index",
+                                                   "GIT_COMMON_DIR": "/elsewhere/.git"}):   # #169: a linked worktree's hook exports it
             env = pkg.suite_env()
         self.assertFalse(set(dyadlib.GIT_VARS) & set(env), env.keys() & set(dyadlib.GIT_VARS))
+        self.assertNotIn("GIT_COMMON_DIR", env)
         self.assertEqual(env["DYAD_NO_NESTED_TESTS"], "1")
 
 if __name__ == "__main__":
