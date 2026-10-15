@@ -7,4 +7,4 @@ reference); `d-work` the installing d-work. No date: a second install of the sam
 
 | craft | version | source | sha256 | d-work |
 |-------|---------|--------|--------|--------|
-| countersign | 0.2.0 | pltrinh1122/dyad-system craft/152-countersign-0.2 a2321ee | f9a1f9bb1140ca6d6d78da95d9521064c84ca57fc15a6807a23ab82f8c2837af | #1 |
+| countersign | 0.3.0 | countersign-0.3.0.tar.gz | 7f6614a7b650ee0214125d4967b785204bc0970001e3170bb3a1bf91d2ea974b | #3 |
