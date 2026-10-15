@@ -1,0 +1,51 @@
+# Self-diagnostic test levels for countersign-system (instance; the countersign craft's rules/self-diagnostic.md,
+# checked by crafts/countersign/scripts/levels.py at the run-book's `health` step).
+#
+# One `<level> <path>` per line: `unit` (L1) or `integration` (L2); a repo-relative test module, run one at a time
+# as `dyad/bin/dyad check --tests <path>`. A module any of whose tests starts a child process (git, an interpreter,
+# a shell, the runner) is `integration`.
+#
+# Copied from countersign 0.3.0's seed, then re-observed on this system's own tree (d-work #3, 2026-10-15).
+# Core 0.10.1, sysadmin 0.2.1, countersign 0.3.0; 33 test modules. Method: each module run alone under
+# `sys.addaudithook` on process creation, with DYAD_NO_NESTED_TESTS=1 as the runner sets it. A module that
+# started any child process is `integration`. All 33 passed.
+# Departures from the seed:
+# - Three lines dropped: modules this core lacks (dyad/tests/test_incidents.py, dyad/tests/test_trace.py,
+#   dyad/tests/guards/agent/test_traces.py).
+# - Five `unit` -> `integration`: test_frame, test_plans, test_rules, test_vocabulary and test_preferences each
+#   start `git rev-parse` through dyadlib.repo_root on this core.
+# - One `integration` -> `unit`: dyad/tests/test_playbooks.py starts no process on this core.
+# Revise a line whenever a module is added, moved, removed or changes level (a core or craft upgrade).
+unit        crafts/countersign/tests/test_levels.py
+integration crafts/countersign/tests/test_project_countersign.py
+integration crafts/sysadmin/tests/guards/test_changelog.py
+integration crafts/sysadmin/tests/guards/test_events.py
+integration crafts/sysadmin/tests/guards/test_ops_scripts.py
+integration crafts/sysadmin/tests/guards/test_runbooks.py
+integration crafts/sysadmin/tests/test_project_events.py
+integration dyad/tests/guards/agent/test_frame.py
+integration dyad/tests/guards/agent/test_plans.py
+integration dyad/tests/guards/agent/test_provenance.py
+integration dyad/tests/guards/agent/test_prs.py
+integration dyad/tests/guards/agent/test_records.py
+integration dyad/tests/guards/agent/test_references.py
+integration dyad/tests/guards/agent/test_rows.py
+integration dyad/tests/guards/agent/test_rules.py
+integration dyad/tests/guards/agent/test_sessions.py
+integration dyad/tests/guards/agent/test_vocabulary.py
+integration dyad/tests/guards/craft/test_crafts.py
+integration dyad/tests/guards/infra/test_bundle.py
+integration dyad/tests/guards/infra/test_containment.py
+integration dyad/tests/guards/infra/test_manifest.py
+integration dyad/tests/guards/preferences/test_preferences.py
+integration dyad/tests/test_concurrency.py
+integration dyad/tests/test_craft.py
+integration dyad/tests/test_distribute.py
+integration dyad/tests/test_dyadlib.py
+integration dyad/tests/test_dyadlib_rows.py
+integration dyad/tests/test_entrypoint.py
+unit        dyad/tests/test_hostadapter.py
+integration dyad/tests/test_livetest.py
+integration dyad/tests/test_package.py
+unit        dyad/tests/test_playbooks.py
+integration dyad/tests/test_runbook.py
